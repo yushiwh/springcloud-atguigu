@@ -1,51 +1,65 @@
-springcloud-atguigu
-
+# springcloud-atguigu
 尚硅谷SC的第一部分视频教程代码
 
-包括的内容
+## 包括的内容
+  1.  ==eureka的搭建和集群的搭建，如果要用域名的话需要在hosts中修改对应的127.0.0.1==
+     
+      
+    ```
+    eureka: 
+      instance:
+        hostname: eureka7001.com #eureka服务端的实例名称
+      client: 
+        register-with-eureka: false     #false表示不向注册中心注册自己。
+        fetch-registry: false     #false表示自己端就是注册中心，我的职责就是维护服务实例，并不需要去检索服务
+        service-url: 
+          #单机 defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/       #设置与Eureka Server交互的地址查询服务和注册服务都需要依赖这个地址（单机）。
+          defaultZone: http://eureka7002.com:7002/eureka/,http://eureka7003.com:7003/eureka/
+    ```
 
-eureka的搭建和集群的搭建，如果要用域名的话需要在hosts中修改对应的127.0.0.1
-```
-eureka: 
-  instance:
-    hostname: eureka7001.com #eureka服务端的实例名称
-  client: 
-    register-with-eureka: false     #false表示不向注册中心注册自己。
-    fetch-registry: false     #false表示自己端就是注册中心，我的职责就是维护服务实例，并不需要去检索服务
-    service-url: 
-      #单机 defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/       #设置与Eureka Server交互的地址查询服务和注册服务都需要依赖这个地址（单机）。
-      defaultZone: http://eureka7002.com:7002/eureka/,http://eureka7003.com:7003/eureka/
-```
-provider的提供，注意进行注册到eureka的服务列表
-```
-     @EnableEurekaClient //本服务启动后会自动注册进eureka服务中
-     @EnableDiscoveryClient //服务发现
-```
+     
+  2. ==provider的提供，注意进行注册到eureka的服务列表==
+     
+    ```
+         @EnableEurekaClient //本服务启动后会自动注册进eureka服务中
+         @EnableDiscoveryClient //服务发现
+    ```
 
-
+    
+    ```
+    eureka:
+              client: #客户端注册进eureka服务列表内
+                service-url: 
+                  #defaultZone: http://localhost:7001/eureka
+                   defaultZone: http://eureka7001.com:7001/eureka/,http://eureka7002.com:7002/eureka/,http://eureka7003.com:7003/eureka/      
+              instance:
+                instance-id: microservicecloud-dept8001
+                prefer-ip-address: true     #访问路径可以显示IP地址
+    ```
+  3. ==客户端==
+  
+    ```
+    eureka:
+      client:
+        register-with-eureka: false
+        service-url: 
+          defaultZone: http://eureka7001.com:7001/eureka/,http://eureka7002.com:7002/eureka/,http://eureka7003.com:7003/eureka/
+    ```
+   4. ==Ribbon== 
+       
 ```
-eureka:
-          client: #客户端注册进eureka服务列表内
-            service-url: 
-              #defaultZone: http://localhost:7001/eureka
-               defaultZone: http://eureka7001.com:7001/eureka/,http://eureka7002.com:7002/eureka/,http://eureka7003.com:7003/eureka/      
-          instance:
-            instance-id: microservicecloud-dept8001
-            prefer-ip-address: true     #访问路径可以显示IP地址
-```
-客户端
-```
-eureka:
-  client:
-    register-with-eureka: false
-    service-url: 
-      defaultZone: http://eureka7001.com:7001/eureka/,http://eureka7002.com:7002/eureka/,http://eureka7003.com:7003/eureka/
-```
-Ribbon
       @EnableEurekaClient
         //在启动该微服务的时候就能去加载我们的自定义Ribbon配置类，从而使配置生效
         //@RibbonClient(name="MICROSERVICECLOUD-DEPT",configuration=MySelfRule.class)
         @RibbonClient(name="MICROSERVICECLOUD-DEPT",configuration=MySelfRule.class)
+```
+
+   
+
+---
+     
+       
+```
         //RestTemplate 的调用
         //private static final String REST_URL_PREFIX = "http://localhost:8001";
     	private static final String REST_URL_PREFIX = "http://MICROSERVICECLOUD-DEPT";
@@ -62,6 +76,11 @@ Ribbon
     	{
     		return restTemplate.postForObject(REST_URL_PREFIX + "/dept/add", dept, Boolean.class);
     	}
+```
+
+---
+
+```
         @Configuration
         public class ConfigBean //boot -->spring   applicationContext.xml --- @Configuration配置   ConfigBean = applicationContext.xml
         { 
@@ -80,7 +99,13 @@ Ribbon
         		return new RetryRule();
         	}
         }
-Feign(定义一个接口，标注一个注解@FeignClient,直接可以进行@Autowired)
+```
+    
+   
+5. ==Feign(定义一个接口，标注一个注解@FeignClient,直接可以进行@Autowired)==
+    
+    
+```
 @SpringBootApplication
 @EnableEurekaClient
 @EnableFeignClients(basePackages= {"com.atguigu.springcloud"})
@@ -92,6 +117,11 @@ public class DeptConsumer80_Feign_App
 		SpringApplication.run(DeptConsumer80_Feign_App.class, args);
 	}
 }
+```
+
+---
+
+```
 /**
  * 
  * @Description: 修改microservicecloud-api工程，根据已经有的DeptClientService接口
@@ -116,6 +146,11 @@ public interface DeptClientService
 	@RequestMapping(value = "/dept/add", method = RequestMethod.POST)
 	public boolean add(Dept dept);
 }
+```
+
+---
+
+```
 
 @RestController
 public class DeptController_Consumer
@@ -141,6 +176,11 @@ public class DeptController_Consumer
 		return this.service.add(dept);
 	}
 }
+```
+
+---
+
+```
 @Component // 不要忘记添加，不要忘记添加.这是带有fallbackFactory进行降级的类
 public class DeptClientServiceFallbackFactory implements FallbackFactory<DeptClientService>
 {
@@ -169,3 +209,6 @@ public class DeptClientServiceFallbackFactory implements FallbackFactory<DeptCli
 		};
 	}
 }
+```
+
+     
